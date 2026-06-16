@@ -3,12 +3,14 @@ package com.green.eats.common.security;
 import com.green.eats.common.constants.ConstJwt;
 import com.green.eats.common.model.JwtUser;
 import com.green.eats.common.model.UserPrincipal;
+import com.green.eats.common.redis.RedisService;
 import com.green.eats.common.util.MyCookieUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
@@ -21,6 +23,7 @@ public class JwtTokenManager { //인증 처리 총괄
     private final ConstJwt constJwt;
     private final MyCookieUtils myCookieUtils;
     private final JwtTokenProvider jwtTokenProvider;
+    private final RedisService redisService;
 
     public void issue(HttpServletResponse res, JwtUser jwtUser) {
         setAccessTokenInCookie(res, jwtUser);
@@ -34,6 +37,9 @@ public class JwtTokenManager { //인증 처리 총괄
 
     public void setRefreshTokenInCookie(HttpServletResponse res, JwtUser jwtUser) {
         String refreshToken = jwtTokenProvider.generateRefreshToken(jwtUser);
+        //
+        String redisKey = String.format("RT-%d", jwtUser.getSignedUserId()); // redis
+        redisService.save(redisKey, refreshToken, constJwt.refreshTokenCookieValiditySeconds());  // redis
         setRefreshTokenInCookie(res, refreshToken);
     }
 
